@@ -19,7 +19,7 @@ pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=4096)
 # Constants
 IMAGE_FOLDER = "images"
 VIDEO_FOLDER = "videos"
-BACKGROUND_IMAGE = "ver 3 squared forest final.png"
+BACKGROUND_IMAGE = "forest no popups.mp4"
 
 # Load detection models
 face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
@@ -41,11 +41,26 @@ root.geometry(f"{screen_width}x{screen_height}")
 root.attributes('-fullscreen', True)
 root.title("Human Detection Display")
 
-bg_img = Image.open(BACKGROUND_IMAGE).resize((screen_width, screen_height))
-bg_photo = ImageTk.PhotoImage(bg_img)
 canvas = Canvas(root, width=screen_width, height=screen_height)
 canvas.pack()
-canvas.create_image(0, 0, anchor=NW, image=bg_photo)
+
+bg_cap = cv2.VideoCapture(BACKGROUND_IMAGE)
+
+def update_background():
+    ret, frame = bg_cap.read()
+    if ret:
+        frame = cv2.resize(frame, (screen_width, screen_height))
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        img = Image.fromarray(frame)
+        imgtk = ImageTk.PhotoImage(image=img)
+        canvas.create_image(0, 0, anchor=NW, image=imgtk)
+        canvas.imgtk = imgtk  # prevent garbage collection
+    else:
+        bg_cap.set(cv2.CAP_PROP_POS_FRAMES, 0)  # loop video
+    root.after(30, update_background)  # ~30ms for ~33 FPS
+
+update_background()
+
 
 cap = cv2.VideoCapture(0)
 popup_lock = threading.Lock()
